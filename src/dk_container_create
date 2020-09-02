@@ -1,0 +1,81 @@
+echo
+if [ -z $1 ]; then
+    echo "[ usage ] dk_container_create <docker_image.diso> <container_name>"
+    echo
+    exit 1
+fi
+
+if [ -z $2 ]; then
+    echo "[ usage ] dk_container_create <docker_image.diso> <container_name>"
+    echo
+    exit 1
+fi
+
+DOCKER_ISO_NAME="$1"
+CONTAINER_NAME="$2"
+IMAGE_NAME=`echo $DOCKER_ISO_NAME | awk -F. '{print $1}'`
+TAR_IMAGE_NAME="${IMAGE_NAME}.tar"
+
+DISO_SET=`echo $DOCKER_ISO_NAME | awk -F. '{print $2}'`
+
+if [ -z $DISO_SET ]; then
+    echo "[ error ] specify docker image name with (.diso) extension" 
+    exit 1
+fi
+
+
+
+if [ -z $DISO_SET ]; then
+    echo "[ error ] specify docker image name with (.diso) extension" 
+    exit 1
+fi
+
+
+
+if [ ! -f "$DOCKER_ISO_NAME" ]; then
+    echo "[ error ] Docker ISO Image File Missing ( $DOCKER_ISO_NAME )"
+    exit 1
+fi
+
+cp -rf $DOCKER_ISO_NAME $TAR_IMAGE_NAME
+
+if [ ! -f "$TAR_IMAGE_NAME" ]; then
+    echo "[ error ] Docker Image File Missing ($TAR_IMAGE_NAME)"
+    exit 1
+fi
+
+if [[ -z "$IMAGE_NAME" ]]; then
+    echo "[ error ] Invalid Docker Image Name ($IMAGE_NAME)"
+    rm -rf $TAR_IMAGE_NAME
+    exit 1
+fi
+
+mkdir -p ~/docker_share/$CONTAINER_NAME
+
+echo "[ status ] Remove old container ( if any ) by name -> $CONTAINER_NAME"
+docker container rm $CONTAINER_NAME &> /dev/null 
+
+echo "[ status ] Remove Old Docker Image ( if any ) By Name -> $IMAGE_NAME"
+docker image rm  $IMAGE_NAME &> /dev/null 
+
+echo "[ status ] Load Docker Image ( $DOCKER_ISO_NAME  ) ( $TAR_IMAGE_NAME )"
+docker load -i $TAR_IMAGE_NAME
+
+if [ $? -ne 0 ]; then
+    echo "[ error ] Docker Load"
+    exit 1
+fi
+
+echo
+docker create -t -i -v ~/docker_share/$CONTAINER_NAME:/var/www/html -p 2020:80 --name $CONTAINER_NAME $IMAGE_NAME bash
+
+if [ $? -ne 0 ]; then
+    echo "[ error ] unable to create docker container ( container_name = $CONTAINER_NAME )"
+    rm -rf $TAR_IMAGE_NAME
+    exit 1
+fi
+
+echo "[ success ] docker container created successfully ( container_name = $CONTAINER_NAME )"
+rm -rf $TAR_IMAGE_NAME
+
+
