@@ -50,7 +50,9 @@ if [[ -z "$IMAGE_NAME" ]]; then
     exit 1
 fi
 
-mkdir -p ~/docker_share/$CONTAINER_NAME
+mkdir -p ~/docker_share/$CONTAINER_NAME/www_data
+mkdir -p ~/docker_share/$CONTAINER_NAME/www_db
+mkdir -p ~/docker_share/$CONTAINER_NAME/www_cert
 
 echo "[ status ] Remove old container ( if any ) by name -> $CONTAINER_NAME"
 docker container rm $CONTAINER_NAME &> /dev/null 
@@ -67,7 +69,10 @@ if [ $? -ne 0 ]; then
 fi
 
 echo
-docker create -t -i -v ~/docker_share/$CONTAINER_NAME:/var/www/html -p 2020:80 --name $CONTAINER_NAME $IMAGE_NAME bash
+
+docker create -t -i -v ~/docker_share/$CONTAINER_NAME/www_data:/var/www/html \
+	-v ~/docker_share/$CONTAINER_NAME/www_cert:/etc/letsencrypt \
+	-p 2020:80 -p 2021:443 --name $CONTAINER_NAME $IMAGE_NAME bash
 
 if [ $? -ne 0 ]; then
     echo "[ error ] unable to create docker container ( container_name = $CONTAINER_NAME )"
